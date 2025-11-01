@@ -1,0 +1,6 @@
+{
+  "ignore_profiles": ["profile-name"],
+  "default_months": 6,
+  "default_output": "monthly_costs.txt",
+  "default_format": "table"
+}

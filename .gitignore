@@ -1,0 +1,14 @@
+# Entorno de Python / cachés
+__pycache__/
+*.py[cod]
+
+# Config local
+config.json
+
+# Salidas generadas
+monthly_costs.txt
+monthly_costs.csv
+reportes/
+
+# Misceláneo
+.DS_Store
