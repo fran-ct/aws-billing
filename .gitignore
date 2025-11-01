@@ -8,6 +8,7 @@ config.json
 # Salidas generadas
 monthly_costs.txt
 monthly_costs.csv
+monthly_costs.tsv
 reportes/
 
 # Misceláneo
