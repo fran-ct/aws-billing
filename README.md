@@ -72,9 +72,10 @@ Luego ajusta los campos según tu entorno:
 
 - `ignore_profiles`: perfiles que se omitirán cuando se consulte a “todos”.
 - `default_months`: meses a incluir si no se pasa `--months`.
-- `default_output`: ruta del archivo generado si no se indica `--output`.
-- `default_format`: `table` o `csv`.
-  - Si estableces `csv`, no es necesario que `default_output` termine en `.csv`; el script ajusta la extensión automáticamente.
+- `default_output`: nombre base del archivo generado cuando no se indica `--output` (se crea dentro de la carpeta `reportes/` a menos que definas `reports_dir`).
+- `default_format`: `table`, `csv`, `tsv` o `all`.
+  - Si usas `csv` o `tsv`, la extensión se ajusta automáticamente.
+- `reports_dir`: carpeta donde se guardan los reportes cuando no se proporciona ruta explícita (por defecto `reportes/`).
 
 También puedes excluir perfiles temporalmente con la variable `MONTHLY_COSTS_EXCLUDE` (`perfil1,perfil2`).
 
@@ -91,11 +92,9 @@ Opciones principales:
 - `--exclude PERFIL`: excluye un perfil cuando usas `--all-profiles` o no especificas perfiles. Se puede repetir; también puedes definir la variable de entorno `MONTHLY_COSTS_EXCLUDE` con una lista separada por comas.
 - `--months N`: incluye el mes actual y los `N-1` anteriores (por defecto 6).
 - `--account ID`: filtra por IDs de cuenta específicos (opción repetible).
-- `--output RUTA`: archivo de salida; usa la ruta definida en la configuración si no se indica. Ajusta automáticamente la extensión según el formato (`.csv`, `.tsv` o `.txt`).
-- `--format`: formato de archivo (`table`, `csv`, `tsv` o `all`). Si no se indica, se generan los tres formatos (`.txt`, `.csv`, `.tsv`).
+- `--output RUTA`: archivo de salida; si no se indica, se usa el nombre definido en la configuración dentro de `reportes/`. La extensión se ajusta según el formato.
+- `--format`: formato de archivo (`table`, `csv`, `tsv` o `all`). Si no se especifica, se generan automáticamente los tres formatos (`.txt`, `.csv`, `.tsv`), todos en la carpeta `reportes/`.
 - `--no-header`: omite la fila de encabezados en la salida estándar.
-
-Si no especificas `--format`, el script detecta automáticamente `csv` cuando `--output` (o la configuración por defecto) termina en `.csv`; en cualquier otro caso usará el formato indicado en la configuración (`table` por defecto).
 
 ### Ejemplos
 
@@ -125,7 +124,7 @@ python3 billing.py --all-profiles --months 12 --output reportes/costos.txt
   - `table`: misma tabla pero con números enteros sin separador.
   - `csv`: archivo CSV estándar (la consola sigue mostrando la tabla). También se selecciona automáticamente si la ruta termina en `.csv`.
   - `tsv`: archivo con valores separados por tabulaciones (ideal para copiar/pegar).
-  - Si no especificas formato, se escriben los tres archivos (`.txt`, `.csv`, `.tsv`).
+  - Si no especificas formato, se escriben los tres archivos (`.txt`, `.csv`, `.tsv`) dentro de la carpeta `reportes/`.
 
 ## Problemas frecuentes
 

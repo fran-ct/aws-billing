@@ -6,10 +6,7 @@ __pycache__/
 config.json
 
 # Salidas generadas
-monthly_costs.txt
-monthly_costs.csv
-monthly_costs.tsv
-reportes/
+/reportes/
 
 # Misceláneo
 .DS_Store

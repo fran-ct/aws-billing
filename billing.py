@@ -167,7 +167,8 @@ def main() -> None:
     months = max(1, months)
 
     default_output = config.get("default_output", DEFAULT_CONFIG["default_output"])
-    output_path = Path(args.output) if args.output else Path(default_output)
+    reports_dir_config = config.get("reports_dir", DEFAULT_CONFIG.get("reports_dir", "reportes"))
+    output_path = Path(args.output) if args.output else Path(reports_dir_config) / default_output
 
     default_format = str(config.get("default_format", DEFAULT_CONFIG["default_format"])).lower()
     formats_to_generate: List[str]
@@ -208,7 +209,7 @@ def main() -> None:
     if args.format and args.format.lower() != "all" and args.output:
         base_path = output_path
     else:
-        base_path = output_path if output_path.name != default_output else PROJECT_ROOT / default_output
+        base_path = Path(reports_dir_config) / (args.output.name if args.output else default_output)
 
     for fmt in formats_to_generate:
         suffix = base_path.suffix.lower()
