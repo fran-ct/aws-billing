@@ -26,6 +26,7 @@ DEFAULT_CONFIG = {
     "ignore_profiles": [],
     "default_months": 6,
     "output_dir": ".",
+    "export_files_by_default": True,
 }
 DEFAULT_OUTPUT_BASENAME = "monthly_costs"
 DEFAULT_PROFILE_LABEL = "__default__"
@@ -292,6 +293,10 @@ def main() -> None:
     else:
         output_path = output_dir / DEFAULT_OUTPUT_BASENAME
 
+    export_files_by_default = bool(
+        config.get("export_files_by_default", DEFAULT_CONFIG["export_files_by_default"])
+    )
+
     formats_to_generate: List[str]
     if args.format:
         selected = args.format.lower()
@@ -299,13 +304,18 @@ def main() -> None:
             formats_to_generate = ["table", "csv", "tsv"]
         else:
             formats_to_generate = [selected]
-    else:
+    elif export_files_by_default:
         formats_to_generate = ["table", "csv", "tsv"]
+    else:
+        formats_to_generate = []
 
     for fmt in list(formats_to_generate):
         if fmt not in {"table", "csv", "tsv"}:
             print(f"# Formato desconocido '{fmt}', se omitirá.")
             formats_to_generate.remove(fmt)
+
+    if not formats_to_generate and args.format:
+        print("# No se generarán archivos porque no se seleccionaron formatos válidos.")
 
     # Determina rutas finales por formato
     output_files: Dict[str, Path] = {}

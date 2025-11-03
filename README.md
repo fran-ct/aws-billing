@@ -65,13 +65,15 @@ Luego ajusta los campos según tu entorno:
 {
   "ignore_profiles": ["billing-sso"],
   "default_months": 6,
-  "output_dir": "reportes"
+  "output_dir": "reportes",
+  "export_files_by_default": true
 }
 ```
 
 - `ignore_profiles`: perfiles que se omitirán cuando se consulte a “todos”.
 - `default_months`: meses a incluir si no se pasa `--months`.
-- `output_dir`: carpeta donde se guardan los reportes cuando no se proporciona `--output` (por defecto el directorio actual). Se generan `monthly_costs.txt`, `.csv` y `.tsv`.
+- `output_dir`: carpeta donde se guardan los reportes cuando no se proporciona `--output` (por defecto el directorio actual).
+- `export_files_by_default`: cuando es `true` (por defecto) se generan automáticamente `monthly_costs.{txt,csv,tsv}`; si es `false`, debes indicar el formato con `--format`.
 - Para compatibilidad, si tienes `reports_dir` en un archivo previo seguirá usándose como ruta de salida.
 
 También puedes excluir perfiles temporalmente con la variable `MONTHLY_COSTS_EXCLUDE` (`perfil1,perfil2`).
@@ -90,7 +92,7 @@ Opciones principales:
 - `--months N`: incluye el mes actual y los `N-1` anteriores (por defecto 6).
 - `--account ID`: filtra por IDs de cuenta específicos (opción repetible).
 - `--output RUTA`: archivo de salida; si no se indica, se genera `monthly_costs` en la carpeta configurada por `output_dir` (por defecto el directorio actual).
-- `--format`: formato de archivo (`table`, `csv`, `tsv` o `all`). Si no se especifica, se generan automáticamente los tres archivos (`.txt`, `.csv`, `.tsv`) en la carpeta de salida.
+- `--format`: formato de archivo (`table`, `csv`, `tsv` o `all`). Si no se especifica y `export_files_by_default` está activado, se generan los tres archivos (`.txt`, `.csv`, `.tsv`). Cuando está desactivado debes indicar explícitamente los formatos.
 - `--no-header`: omite la fila de encabezados en la salida estándar.
 - `--exclude-credits`: excluye registros de tipo `Credit` y `Refund` (dimensión `RECORD_TYPE`) de la consulta.
 - `--only-credits`: limita la consulta a registros de tipo `Credit` y `Refund`. No puede combinarse con `--exclude-credits`.

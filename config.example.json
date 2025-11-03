@@ -1,5 +1,6 @@
 {
   "ignore_profiles": ["profile-name"],
   "default_months": 6,
-  "output_dir": "reportes"
+  "output_dir": "reportes",
+  "export_files_by_default": false
 }
