@@ -17,7 +17,7 @@ import json
 import os
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple, Union, cast
 
 import boto3
 
@@ -107,6 +107,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Consultar únicamente registros de tipo Credit y Refund.",
     )
     parser.add_argument(
+        "--by-account",
+        dest="by_account",
+        action="store_true",
+        help="Desglosar resultados por cuenta vinculada (LINKED_ACCOUNT).",
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         default=None,
@@ -136,7 +142,8 @@ def query_costs(
     accounts: Optional[List[str]] = None,
     exclude_credits: bool = False,
     only_credits: bool = False,
-) -> Dict[str, Decimal]:
+    group_by_account: bool = False,
+) -> Tuple[Union[Dict[str, Decimal], Dict[str, Dict[str, Decimal]]], Dict[str, str]]:
     session = boto3.Session(profile_name=profile) if profile else boto3.Session()
     ce = session.client("ce")
 
@@ -181,7 +188,20 @@ def query_costs(
     if filters:
         params["Filter"] = filters[0] if len(filters) == 1 else {"And": filters}
 
-    totals: Dict[str, Decimal] = {}
+    if group_by_account:
+        params["GroupBy"] = [
+            {
+                "Type": "DIMENSION",
+                "Key": "LINKED_ACCOUNT",
+            }
+        ]
+
+    if group_by_account:
+        totals_by_account: Dict[str, Dict[str, Decimal]] = {}
+        account_names: Dict[str, str] = {}
+    else:
+        totals: Dict[str, Decimal] = {}
+        account_names = {}
     token: Optional[str] = None
     while True:
         if token:
@@ -189,13 +209,61 @@ def query_costs(
         response = ce.get_cost_and_usage(**params)
         for item in response["ResultsByTime"]:
             month = item["TimePeriod"]["Start"]
-            amount = Decimal(item["Total"]["UnblendedCost"]["Amount"])
-            totals[month] = totals.get(month, Decimal("0")) + amount
+            if group_by_account:
+                for group in item.get("Groups", []):
+                    account_id = group["Keys"][0]
+                    amount = Decimal(group["Metrics"]["UnblendedCost"]["Amount"])
+                    account_totals = totals_by_account.setdefault(account_id, {})
+                    account_totals[month] = account_totals.get(month, Decimal("0")) + amount
+            else:
+                amount = Decimal(item["Total"]["UnblendedCost"]["Amount"])
+                totals[month] = totals.get(month, Decimal("0")) + amount
         token = response.get("NextPageToken")
         if not token:
             break
 
-    return totals
+    if group_by_account:
+        account_names = fetch_account_names(ce, start_date, end_date, list(totals_by_account.keys()))
+        return totals_by_account, account_names
+    return totals, account_names
+
+
+def fetch_account_names(
+    client,
+    start_date: dt.date,
+    end_date: dt.date,
+    account_ids: Optional[List[str]] = None,
+) -> Dict[str, str]:
+    params: Dict[str, Any] = {
+        "TimePeriod": {"Start": start_date.isoformat(), "End": end_date.isoformat()},
+        "Dimension": "LINKED_ACCOUNT",
+    }
+    if account_ids:
+        params["Filter"] = {
+            "Dimensions": {
+                "Key": "LINKED_ACCOUNT",
+                "Values": account_ids,
+            }
+        }
+
+    names: Dict[str, str] = {}
+    token: Optional[str] = None
+    while True:
+        if token:
+            params["NextPageToken"] = token
+        response = client.get_dimension_values(**params)
+        for item in response.get("DimensionValues", []):
+            account_id = item.get("Value")
+            if not account_id:
+                continue
+            attrs = item.get("Attributes", {}) or {}
+            description = attrs.get("Description") or attrs.get("description") or ""
+            if description:
+                names[account_id] = description
+        token = response.get("NextPageToken")
+        if not token:
+            break
+    return names
 
 
 def main() -> None:
@@ -304,24 +372,38 @@ def main() -> None:
     all_months: set[str] = set()
     exclude_credits = bool(args.exclude_credits)
     only_credits = bool(args.only_credits)
+    by_account = bool(args.by_account)
 
     for profile in profiles:
         try:
             profile_for_query = None if profile == DEFAULT_PROFILE_LABEL else profile
-            totals = query_costs(
+            totals, account_names = query_costs(
                 profile_for_query,
                 start,
                 end,
                 args.accounts,
                 exclude_credits=exclude_credits,
                 only_credits=only_credits,
+                group_by_account=by_account,
             )
         except Exception as exc:  # pylint: disable=broad-except
             print(f"# Error consultando perfil {profile}: {exc}")
             continue
 
-        results[DEFAULT_PROFILE_DISPLAY if profile == DEFAULT_PROFILE_LABEL else profile] = totals
-        all_months.update(totals.keys())
+        display_name = DEFAULT_PROFILE_DISPLAY if profile == DEFAULT_PROFILE_LABEL else profile
+        if by_account:
+            account_totals = cast(Dict[str, Dict[str, Decimal]], totals)
+            if not account_totals:
+                continue
+            for account_id, month_values in account_totals.items():
+                account_label = account_names.get(account_id, account_id)
+                row_key = f"{display_name} [{account_label}]"
+                results[row_key] = month_values
+                all_months.update(month_values.keys())
+        else:
+            month_totals = cast(Dict[str, Decimal], totals)
+            results[display_name] = month_totals
+            all_months.update(month_totals.keys())
 
     if not results:
         raise SystemExit("No se obtuvieron resultados de ningún perfil.")

@@ -97,6 +97,7 @@ Opciones principales:
 - `--no-header`: omite la fila de encabezados en la salida estándar.
 - `--exclude-credits`: excluye registros de tipo `Credit` y `Refund` (dimensión `RECORD_TYPE`) de la consulta.
 - `--only-credits`: limita la consulta a registros de tipo `Credit` y `Refund`. No puede combinarse con `--exclude-credits`.
+- `--by-account`: desglosa la respuesta en filas por cuenta (`LINKED_ACCOUNT`) dentro de cada perfil, mostrando el nombre de la cuenta cuando Cost Explorer lo expone.
 
 ### Ejemplos
 
@@ -123,6 +124,12 @@ Solo créditos/refunds para un perfil:
 
 ```bash
 python3 billing.py --profile cliente-a --only-credits --months 3
+```
+
+Desglose por cuenta (mostrar cada `LINKED_ACCOUNT` del perfil):
+
+```bash
+python3 billing.py --profile billing-sso --by-account --months 6
 ```
 
 ## Formato de salida
