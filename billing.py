@@ -15,6 +15,7 @@ import csv
 import datetime as dt
 import json
 import os
+import sys
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple, Union, cast
@@ -373,7 +374,34 @@ def main() -> None:
     only_credits = bool(args.only_credits)
     by_account = bool(args.by_account)
 
-    for profile in profiles:
+    status_displayed = False
+
+    def show_status(message: str) -> None:
+        nonlocal status_displayed
+        if not status_displayed:
+            sys.stdout.write("\n")
+            status_displayed = True
+        else:
+            sys.stdout.write("\033[F\033[2K")
+        sys.stdout.write(message + "\n")
+        sys.stdout.flush()
+
+    def clear_status() -> None:
+        nonlocal status_displayed
+        if status_displayed:
+            sys.stdout.write("\033[F\033[2K")
+            sys.stdout.write("\033[F\033[2K")
+            sys.stdout.write("\n")
+            sys.stdout.flush()
+            status_displayed = False
+
+    total_profiles = len(profiles)
+
+    for index, profile in enumerate(profiles, start=1):
+        display_name = DEFAULT_PROFILE_DISPLAY if profile == DEFAULT_PROFILE_LABEL else profile
+        status_message = f"# Getting data from profile ({index}/{total_profiles}): {display_name}"
+        show_status(status_message)
+
         try:
             profile_for_query = None if profile == DEFAULT_PROFILE_LABEL else profile
             totals, account_names = query_costs(
@@ -386,10 +414,10 @@ def main() -> None:
                 group_by_account=by_account,
             )
         except Exception as exc:  # pylint: disable=broad-except
+            clear_status()
             print(f"# Error consultando perfil {profile}: {exc}")
             continue
 
-        display_name = DEFAULT_PROFILE_DISPLAY if profile == DEFAULT_PROFILE_LABEL else profile
         if by_account:
             account_totals = cast(Dict[str, Dict[str, Decimal]], totals)
             if not account_totals:
@@ -406,6 +434,8 @@ def main() -> None:
 
     if not results:
         raise SystemExit("No se obtuvieron resultados de ningún perfil.")
+
+    clear_status()
 
     sorted_months = sorted(all_months)
     month_labels = [month[:7] for month in sorted_months]  # YYYY-MM
