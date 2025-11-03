@@ -65,17 +65,14 @@ Luego ajusta los campos según tu entorno:
 {
   "ignore_profiles": ["billing-sso"],
   "default_months": 6,
-  "default_output": "monthly_costs.txt",
-  "default_format": "table"
+  "output_dir": "reportes"
 }
 ```
 
 - `ignore_profiles`: perfiles que se omitirán cuando se consulte a “todos”.
 - `default_months`: meses a incluir si no se pasa `--months`.
-- `default_output`: nombre base del archivo generado cuando no se indica `--output` (se crea dentro de la carpeta `reportes/` a menos que definas `reports_dir`).
-- `default_format`: `table`, `csv`, `tsv` o `all`.
-  - Si usas `csv` o `tsv`, la extensión se ajusta automáticamente.
-- `reports_dir`: carpeta donde se guardan los reportes cuando no se proporciona ruta explícita (por defecto `reportes/`).
+- `output_dir`: carpeta donde se guardan los reportes cuando no se proporciona `--output` (por defecto el directorio actual). Se generan `monthly_costs.txt`, `.csv` y `.tsv`.
+- Para compatibilidad, si tienes `reports_dir` en un archivo previo seguirá usándose como ruta de salida.
 
 También puedes excluir perfiles temporalmente con la variable `MONTHLY_COSTS_EXCLUDE` (`perfil1,perfil2`).
 
@@ -92,8 +89,8 @@ Opciones principales:
 - `--exclude PERFIL`: excluye un perfil cuando usas `--all-profiles` o no especificas perfiles. Se puede repetir; también puedes definir la variable de entorno `MONTHLY_COSTS_EXCLUDE` con una lista separada por comas.
 - `--months N`: incluye el mes actual y los `N-1` anteriores (por defecto 6).
 - `--account ID`: filtra por IDs de cuenta específicos (opción repetible).
-- `--output RUTA`: archivo de salida; si no se indica, se usa el nombre definido en la configuración dentro de `reportes/`. La extensión se ajusta según el formato.
-- `--format`: formato de archivo (`table`, `csv`, `tsv` o `all`). Si no se especifica, se generan automáticamente los tres formatos (`.txt`, `.csv`, `.tsv`), todos en la carpeta `reportes/`.
+- `--output RUTA`: archivo de salida; si no se indica, se genera `monthly_costs` en la carpeta configurada por `output_dir` (por defecto el directorio actual).
+- `--format`: formato de archivo (`table`, `csv`, `tsv` o `all`). Si no se especifica, se generan automáticamente los tres archivos (`.txt`, `.csv`, `.tsv`) en la carpeta de salida.
 - `--no-header`: omite la fila de encabezados en la salida estándar.
 - `--exclude-credits`: excluye registros de tipo `Credit` y `Refund` (dimensión `RECORD_TYPE`) de la consulta.
 - `--only-credits`: limita la consulta a registros de tipo `Credit` y `Refund`. No puede combinarse con `--exclude-credits`.
@@ -139,7 +136,7 @@ python3 billing.py --profile billing-sso --by-account --months 6
   - `table`: misma tabla pero con números enteros sin separador.
   - `csv`: archivo CSV estándar (la consola sigue mostrando la tabla). También se selecciona automáticamente si la ruta termina en `.csv`.
   - `tsv`: archivo con valores separados por tabulaciones (ideal para copiar/pegar).
-  - Si no especificas formato, se escriben los tres archivos (`.txt`, `.csv`, `.tsv`) dentro de la carpeta `reportes/`.
+  - Si no especificas formato, se escriben los tres archivos (`.txt`, `.csv`, `.tsv`) en la carpeta definida por `output_dir`.
 
 ## Problemas frecuentes
 

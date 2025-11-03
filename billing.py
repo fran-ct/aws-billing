@@ -25,9 +25,9 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 DEFAULT_CONFIG = {
     "ignore_profiles": [],
     "default_months": 6,
-    "default_output": "monthly_costs.txt",
-    "default_format": "table",
+    "output_dir": ".",
 }
+DEFAULT_OUTPUT_BASENAME = "monthly_costs"
 DEFAULT_PROFILE_LABEL = "__default__"
 DEFAULT_PROFILE_DISPLAY = "default"
 
@@ -277,11 +277,21 @@ def main() -> None:
     if args.exclude_credits and args.only_credits:
         raise SystemExit("No puedes usar --exclude-credits y --only-credits al mismo tiempo.")
 
-    default_output = config.get("default_output", DEFAULT_CONFIG["default_output"])
-    reports_dir_config = config.get("reports_dir", DEFAULT_CONFIG.get("reports_dir", "reportes"))
-    output_path = Path(args.output) if args.output else Path(reports_dir_config) / default_output
+    output_dir_config = config.get("output_dir", DEFAULT_CONFIG["output_dir"])
+    if "output_dir" not in config and "reports_dir" in config:
+        output_dir_config = config["reports_dir"]
 
-    default_format = str(config.get("default_format", DEFAULT_CONFIG["default_format"])).lower()
+    output_dir = Path(output_dir_config).expanduser()
+    if not output_dir.is_absolute():
+        output_dir = (PROJECT_ROOT / output_dir).resolve()
+
+    if args.output:
+        output_path = Path(args.output).expanduser()
+        if not output_path.is_absolute():
+            output_path = (PROJECT_ROOT / output_path).resolve()
+    else:
+        output_path = output_dir / DEFAULT_OUTPUT_BASENAME
+
     formats_to_generate: List[str]
     if args.format:
         selected = args.format.lower()
@@ -289,25 +299,7 @@ def main() -> None:
             formats_to_generate = ["table", "csv", "tsv"]
         else:
             formats_to_generate = [selected]
-    elif args.output:
-        suffix = output_path.suffix.lower()
-        if suffix == ".csv":
-            formats_to_generate = ["csv"]
-        elif suffix in {".tsv", ".txt"}:
-            formats_to_generate = ["tsv"]
-        else:
-            formats_to_generate = [default_format]
     else:
-        suffix = Path(default_output).suffix.lower()
-        if suffix == ".csv":
-            formats_to_generate = ["csv"]
-        elif suffix in {".tsv", ".txt"}:
-            formats_to_generate = ["tsv"]
-        else:
-            formats_to_generate = [default_format]
-
-    # Si no se especifica formato, generar los tres.
-    if not args.format:
         formats_to_generate = ["table", "csv", "tsv"]
 
     for fmt in list(formats_to_generate):
@@ -317,10 +309,7 @@ def main() -> None:
 
     # Determina rutas finales por formato
     output_files: Dict[str, Path] = {}
-    if args.format and args.format.lower() != "all" and args.output:
-        base_path = output_path
-    else:
-        base_path = Path(reports_dir_config) / (args.output.name if args.output else default_output)
+    base_path = output_path
 
     for fmt in formats_to_generate:
         suffix = base_path.suffix.lower()
