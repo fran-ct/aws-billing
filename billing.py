@@ -95,6 +95,18 @@ def build_parser() -> argparse.ArgumentParser:
         help="No imprimir la fila de encabezados.",
     )
     parser.add_argument(
+        "--exclude-credits",
+        dest="exclude_credits",
+        action="store_true",
+        help="Excluir registros de tipo Credit y Refund al consultar Cost Explorer.",
+    )
+    parser.add_argument(
+        "--only-credits",
+        dest="only_credits",
+        action="store_true",
+        help="Consultar únicamente registros de tipo Credit y Refund.",
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         default=None,
@@ -122,6 +134,8 @@ def query_costs(
     start_date: dt.date,
     end_date: dt.date,
     accounts: Optional[List[str]] = None,
+    exclude_credits: bool = False,
+    only_credits: bool = False,
 ) -> Dict[str, Decimal]:
     session = boto3.Session(profile_name=profile) if profile else boto3.Session()
     ce = session.client("ce")
@@ -133,13 +147,39 @@ def query_costs(
         "Metrics": ["UnblendedCost"],
     }
 
+    filters: List[Dict[str, object]] = []
     if accounts:
-        params["Filter"] = {
-            "Dimensions": {
-                "Key": "LINKED_ACCOUNT",
-                "Values": accounts,
+        filters.append(
+            {
+                "Dimensions": {
+                    "Key": "LINKED_ACCOUNT",
+                    "Values": accounts,
+                }
             }
-        }
+        )
+    if only_credits:
+        filters.append(
+            {
+                "Dimensions": {
+                    "Key": "RECORD_TYPE",
+                    "Values": ["Credit", "Refund"],
+                }
+            }
+        )
+    elif exclude_credits:
+        filters.append(
+            {
+                "Not": {
+                    "Dimensions": {
+                        "Key": "RECORD_TYPE",
+                        "Values": ["Credit", "Refund"],
+                    }
+                }
+            }
+        )
+
+    if filters:
+        params["Filter"] = filters[0] if len(filters) == 1 else {"And": filters}
 
     totals: Dict[str, Decimal] = {}
     token: Optional[str] = None
@@ -165,6 +205,9 @@ def main() -> None:
     default_months = int(config.get("default_months", DEFAULT_CONFIG["default_months"]))
     months = int(args.months) if args.months is not None else default_months
     months = max(1, months)
+
+    if args.exclude_credits and args.only_credits:
+        raise SystemExit("No puedes usar --exclude-credits y --only-credits al mismo tiempo.")
 
     default_output = config.get("default_output", DEFAULT_CONFIG["default_output"])
     reports_dir_config = config.get("reports_dir", DEFAULT_CONFIG.get("reports_dir", "reportes"))
@@ -259,11 +302,20 @@ def main() -> None:
 
     results: Dict[str, Dict[str, Decimal]] = {}
     all_months: set[str] = set()
+    exclude_credits = bool(args.exclude_credits)
+    only_credits = bool(args.only_credits)
 
     for profile in profiles:
         try:
             profile_for_query = None if profile == DEFAULT_PROFILE_LABEL else profile
-            totals = query_costs(profile_for_query, start, end, args.accounts)
+            totals = query_costs(
+                profile_for_query,
+                start,
+                end,
+                args.accounts,
+                exclude_credits=exclude_credits,
+                only_credits=only_credits,
+            )
         except Exception as exc:  # pylint: disable=broad-except
             print(f"# Error consultando perfil {profile}: {exc}")
             continue

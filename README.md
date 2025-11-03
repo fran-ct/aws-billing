@@ -95,6 +95,8 @@ Opciones principales:
 - `--output RUTA`: archivo de salida; si no se indica, se usa el nombre definido en la configuración dentro de `reportes/`. La extensión se ajusta según el formato.
 - `--format`: formato de archivo (`table`, `csv`, `tsv` o `all`). Si no se especifica, se generan automáticamente los tres formatos (`.txt`, `.csv`, `.tsv`), todos en la carpeta `reportes/`.
 - `--no-header`: omite la fila de encabezados en la salida estándar.
+- `--exclude-credits`: excluye registros de tipo `Credit` y `Refund` (dimensión `RECORD_TYPE`) de la consulta.
+- `--only-credits`: limita la consulta a registros de tipo `Credit` y `Refund`. No puede combinarse con `--exclude-credits`.
 
 ### Ejemplos
 
@@ -115,6 +117,12 @@ Todos los perfiles configurados (menos los definidos en `MONTHLY_COSTS_EXCLUDE`)
 ```bash
 export MONTHLY_COSTS_EXCLUDE=billing-sso
 python3 billing.py --all-profiles --months 12 --output reportes/costos.txt
+```
+
+Solo créditos/refunds para un perfil:
+
+```bash
+python3 billing.py --profile cliente-a --only-credits --months 3
 ```
 
 ## Formato de salida
