@@ -461,6 +461,7 @@ def main() -> None:
             for idx, value in enumerate(values)
         )
 
+    export_paths = []
     for fmt, path in output_files.items():
         if fmt == "table":
             header_line_file = format_row_file(headers)
@@ -485,7 +486,15 @@ def main() -> None:
                 for row in raw_rows:
                     writer.writerow(row)
 
-        print(f"# Resultado exportado a {path.resolve()}")
+        export_paths.append(path.resolve())
+
+    if export_paths:
+        destinations = sorted({p.parent for p in export_paths})
+        if len(destinations) == 1:
+            print(f"# Resultados exportados en {destinations[0]}")
+        else:
+            for dest in destinations:
+                print(f"# Resultados exportados en {dest}")
 
 
 if __name__ == "__main__":
